@@ -60,6 +60,8 @@ pipeline{
                     sleep 5
                     curl -f http://localhost:5000/health
                 '''
+            }
+        }
         stage('Pipeline completed'){
             steps{
                 echo 'Pipeline completed successfully'
