@@ -26,9 +26,29 @@ pipeline{
                 sh 'venv/bin/pytest -v'
             }
         }
-        stage('Deploy'){
+        stage('Build Docker Image'){
             steps{
-                echo 'Deploying...'
+                sh 'docker build -t cicd-app-build:v1'
+            }
+        }
+        stage('Verify docker image'){
+            steps{
+                sh 'docker images'
+            }
+        }
+        stage('Run docker container'){
+            steps{
+                sh 'docker run -d -p 5000:5000 cicd-app-build:v1'
+            }
+        }
+        stage('Verify docker container'){
+            steps{
+                sh 'docker ps'
+            }
+        }
+        stage('Pipeline completed'){
+            steps{
+                echo 'Pipeline completed successfully'
             }
         }
     }
