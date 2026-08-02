@@ -36,9 +36,16 @@ pipeline{
                 sh 'docker images'
             }
         }
-        stage('Run docker container'){
+       stage('Run docker container'){
             steps{
-                sh 'docker run -d -p 5000:5000 python-cicd-app:${BUILD_NUMBER}'
+                sh '''
+                    docker rm -f python-cicd-container || true
+        
+                    docker run -d \
+                        --name python-cicd-container \
+                        -p 5000:5000 \
+                        python-cicd-app:${BUILD_NUMBER}
+                '''
             }
         }
         stage('Verify docker container'){
@@ -46,6 +53,13 @@ pipeline{
                 sh 'docker ps'
             }
         }
+        stage('Health check'){
+            steps{
+                echo 'starting Health check'
+                sh '''
+                    sleep 5
+                    curl -f http://localhost:5000/health
+                '''
         stage('Pipeline completed'){
             steps{
                 echo 'Pipeline completed successfully'
