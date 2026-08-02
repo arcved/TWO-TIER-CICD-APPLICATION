@@ -38,7 +38,7 @@ pipeline{
         }
         stage('Run docker container'){
             steps{
-                sh 'docker run -d -p 5000:5000 cicd-app-build:v1'
+                sh 'docker run -d -p 5000:5000 python-cicd-app:${BUILD_NUMBER}'
             }
         }
         stage('Verify docker container'){
