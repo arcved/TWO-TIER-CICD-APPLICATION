@@ -28,7 +28,7 @@ pipeline{
         }
         stage('Build Docker Image'){
             steps{
-                sh 'docker build -t cicd-app-build:v1'
+                sh 'docker build -t python-cicd:{BUILD_NUMBER} .'
             }
         }
         stage('Verify docker image'){
