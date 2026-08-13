@@ -5,6 +5,9 @@ pipeline {
     options {
         skipDefaultCheckout(true)
     }
+    triggers {
+        githubPush()
+    }
 
     stages {
 
