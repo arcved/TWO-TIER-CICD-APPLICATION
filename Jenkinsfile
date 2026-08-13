@@ -172,11 +172,8 @@ pipeline {
                 sh '''
                     sleep 5
         
-                    docker exec python-test-app python -c "
-        import urllib.request
-        response = urllib.request.urlopen('http://localhost:5000/health')
-        print(response.read().decode())
-        "
+                    docker exec python-test-app \
+                        python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5000/health').read().decode())"
                 '''
             }
         }
