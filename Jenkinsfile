@@ -133,6 +133,53 @@ pipeline {
                 '''
             }
         }
+        stage('Stop Existing Container') {
+            steps {
+                echo 'Stopping existing application container...'
+        
+                sh '''
+                    docker stop python-test-app || true
+                '''
+            }
+        }
+        
+        stage('Remove Existing Container') {
+            steps {
+                echo 'Removing existing application container...'
+        
+                sh '''
+                    docker rm python-test-app || true
+                '''
+            }
+        }
+        
+        stage('Deploy Application') {
+            steps {
+                echo 'Deploying application container...'
+        
+                sh '''
+                    docker run -d \
+                        --name python-test-app \
+                        -p 5000:5000 \
+                        python-test-app:${BUILD_NUMBER}
+                '''
+            }
+        }
+        stage('Verify Deployment') {
+            steps {
+                echo 'Verifying application deployment...'
+        
+                sh '''
+                    sleep 5
+        
+                    docker exec python-test-app python -c "
+        import urllib.request
+        response = urllib.request.urlopen('http://localhost:5000/health')
+        print(response.read().decode())
+        "
+                '''
+            }
+        }
     }
 
     post {
