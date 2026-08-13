@@ -1,25 +1,17 @@
 pipeline {
+
     agent any
 
-    environment {
-        IMAGE_NAME = "python-test-app"
-        IMAGE_TAG = "v1"
-        CONTAINER_NAME = "python-test-app"
-
-        HTTP_PROXY = "http://10.158.100.6:8080"
-        HTTPS_PROXY = "http://10.158.100.6:8080"
-        NO_PROXY = "localhost,127.0.0.1"
-
-        http_proxy = "http://10.158.100.6:8080"
-        https_proxy = "http://10.158.100.6:8080"
-        no_proxy = "localhost,127.0.0.1"
+    options {
+        skipDefaultCheckout(true)
     }
 
     stages {
 
-        stage('Checkout Source code') {
+        stage('Checkout Source Code') {
             steps {
-                echo "Checking out source code..."
+                echo 'Checking out source code...'
+
                 checkout scm
             }
         }
@@ -31,7 +23,11 @@ pipeline {
                     echo "Workspace Information"
                     echo "=============================="
 
+                    echo "Current Directory:"
                     pwd
+
+                    echo ""
+                    echo "Files:"
                     ls -la
 
                     echo ""
@@ -48,10 +44,6 @@ pipeline {
         stage('Python Information') {
             steps {
                 sh '''
-                    export http_proxy=$HTTP_PROXY
-                    export https_proxy=$HTTPS_PROXY
-                    export no_proxy=$NO_PROXY
-
                     echo "=============================="
                     echo "Python Information"
                     echo "=============================="
@@ -65,15 +57,15 @@ pipeline {
         stage('Create Virtual Environment') {
             steps {
                 sh '''
-                    export http_proxy=$HTTP_PROXY
-                    export https_proxy=$HTTPS_PROXY
-                    export no_proxy=$NO_PROXY
-
-                    echo "Creating Virtual Environment..."
+                    echo "=============================="
+                    echo "Creating Virtual Environment"
+                    echo "=============================="
 
                     python3 -m venv venv
 
-                    ls -la
+                    echo "Virtual environment created."
+
+                    ls -la venv
                 '''
             }
         }
@@ -81,23 +73,28 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    echo "===== Proxy Environment ====="
-                    env | grep -i proxy
+                    echo "=============================="
+                    echo "Installing Dependencies"
+                    echo "=============================="
 
                     . venv/bin/activate
 
-                    echo "===== Python ====="
+                    echo "Python:"
                     python --version
 
-                    echo "===== Pip ====="
+                    echo ""
+                    echo "Pip:"
                     pip --version
 
-                    python -m pip install --upgrade pip
+                    echo ""
+                    echo "Installing requirements..."
 
-                    python3 -m pip install -r requirements.txt
+                    pip install --upgrade pip
+                    pip install -r requirements.txt
 
+                    echo ""
+                    echo "Installed packages:"
                     pip list
-
                 '''
             }
         }
@@ -105,9 +102,9 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 sh '''
-                    export http_proxy=$HTTP_PROXY
-                    export https_proxy=$HTTPS_PROXY
-                    export no_proxy=$NO_PROXY
+                    echo "=============================="
+                    echo "Running Unit Tests"
+                    echo "=============================="
 
                     . venv/bin/activate
 
@@ -115,83 +112,56 @@ pipeline {
                 '''
             }
         }
-        stage("Building Docker images"){
-            steps{
-                echo "Building docker image"
-                sh '''
-                docker build \
-                 --build-arg HTTP_PROXY=http://10.158.100.6:8080 \
-                 --build-arg HTTPS_PROXY=http://10.158.100.6:8080 \
-                 --build-arg NO_PROXY=localhost,127.0.0.1 \
-                 -t python-test-app${BUILD_NUMBER} .
-                '''
-            }
-        }
-        stage("Verify Images"){
-            steps{
-                sh 'docker images'
-            }
-        }
-        stage("Stop existing conatiner"){
-            steps{
-                echo 'Stopping the existing container............'
-                sh 'docker stop python-test-app || true'
-            }
-        }
-        stage('remove existing container'){
-            steps{
-                echo ' removing existing container (if present)..........'
-                sh '''
-                docker rm python-test-app || true
-                '''
-            }
-        }
-        stage("Deploy Application"){
-            steps{
-                echo "Staring a new application container"
-                sh '''
-                docker run -d \
-                 --name python-test-app \
-                 -p 5000:5000 \
-                 python-test-app${BUILD_NUMBER}
-                '''
-            }
-        }
-        stage('Verify Deployment') {
+
+        stage('Build Docker Image') {
             steps {
-                echo 'Verifying application...'
+                echo 'Building Docker image...'
 
                 sh '''
-                sleep 10
-
-                docker exec python-test-app python - <<EOF
-        import urllib.request
-        response = urllib.request.urlopen('http://localhost:5000/health')
-        print(response.read().decode())
-        EOF
+                    docker build \
+                        -t python-test-app:${BUILD_NUMBER} .
                 '''
             }
         }
 
+        stage('Verify Docker Image') {
+            steps {
+                echo 'Verifying Docker image...'
+
+                sh '''
+                    docker images python-test-app
+                '''
+            }
+        }
     }
+
     post {
 
         success {
             echo "===================================="
-            echo "Pipeline executed successfully!"
-            echo "Application deployed successfully."
+            echo "CI PIPELINE SUCCESSFUL"
+            echo "===================================="
+            echo "Tests passed."
+            echo "Docker image built successfully."
             echo "===================================="
         }
 
         failure {
             echo "===================================="
-            echo "Pipeline failed!"
-            echo "Check Console Output for details."
+            echo "CI PIPELINE FAILED"
+            echo "===================================="
+            echo "Check the Console Output."
             echo "===================================="
         }
 
         always {
-            sh 'docker ps -a'
+            sh '''
+                echo "=============================="
+                echo "Docker Images"
+                echo "=============================="
+
+                docker images python-test-app || true
+            '''
         }
     }
 }
