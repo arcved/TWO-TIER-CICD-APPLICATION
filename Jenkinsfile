@@ -136,44 +136,19 @@ pipeline {
                 '''
             }
         }
-        stage('Stop Existing Container') {
-            steps {
-                echo 'Stopping existing application container...'
-        
-                sh '''
-                    docker stop python-test-app || true
-                '''
-            }
-        }
-        
-        stage('Remove Existing Container') {
-            steps {
-                echo 'Removing existing application container...'
-        
-                sh '''
-                    docker rm python-test-app || true
-                '''
-            }
-        }
-        
-        stage('Deploy Application') {
-            steps {
-                echo 'Deploying application container...'
-        
-                sh '''
-                    docker run -d \
-                        --name python-test-app \
-                        -p 5000:5000 \
-                        python-test-app:${BUILD_NUMBER}
-                '''
-            }
-        }
+	stage('Deploy Stack') {
+	    steps {
+		echo 'Deploying application + database via docker compose...'
+		sh '''
+		    docker compose up -d --build
+		 '''
+	     }
+	}
         stage('Verify Deployment') {
             steps {
                 echo 'Verifying application deployment...'
         
-                sh '''
-                    sleep 5
+                sh '''                    sleep 5
         
                     docker exec python-test-app \
                         python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5000/health').read().decode())"
@@ -204,10 +179,10 @@ pipeline {
         always {
             sh '''
                 echo "=============================="
-                echo "Docker Images"
+                echo "Container Status"
                 echo "=============================="
 
-                docker images python-test-app || true
+                docker compose ps
             '''
         }
     }
