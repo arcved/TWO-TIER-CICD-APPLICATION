@@ -2,9 +2,19 @@ pipeline {
 
     agent any
 
+    environment {
+        HTTP_PROXY  = 'http://10.158.100.6:8080'
+        HTTPS_PROXY = 'http://10.158.100.6:8080'
+        http_proxy  = 'http://10.158.100.6:8080'
+        https_proxy = 'http://10.158.100.6:8080'
+        NO_PROXY    = 'localhost,127.0.0.1'
+        no_proxy    = 'localhost,127.0.0.1'
+    }
+
     options {
         skipDefaultCheckout(true)
     }
+
     triggers {
         githubPush()
     }
@@ -14,42 +24,15 @@ pipeline {
         stage('Checkout Source Code') {
             steps {
                 echo 'Checking out source code...'
-
                 checkout scm
-            }
-        }
-
-        stage('Workspace Information') {
-            steps {
-                sh '''
-                    echo "=============================="
-                    echo "Workspace Information"
-                    echo "=============================="
-
-                    echo "Current Directory:"
-                    pwd
-
-                    echo ""
-                    echo "Files:"
-                    ls -la
-
-                    echo ""
-                    echo "Current User:"
-                    whoami
-
-                    echo ""
-                    echo "Hostname:"
-                    hostname
-                '''
             }
         }
 
         stage('Python Information') {
             steps {
                 sh '''
-                    echo "=============================="
-                    echo "Python Information"
-                    echo "=============================="
+                    echo "=== Proxy Variables ==="
+                    env | grep -i proxy
 
                     python3 --version
                     pip3 --version
@@ -60,15 +43,7 @@ pipeline {
         stage('Create Virtual Environment') {
             steps {
                 sh '''
-                    echo "=============================="
-                    echo "Creating Virtual Environment"
-                    echo "=============================="
-
                     python3 -m venv venv
-
-                    echo "Virtual environment created."
-
-                    ls -la venv
                 '''
             }
         }
@@ -76,27 +51,17 @@ pipeline {
         stage('Install Dependencies') {
             steps {
                 sh '''
-                    echo "=============================="
-                    echo "Installing Dependencies"
-                    echo "=============================="
-
                     . venv/bin/activate
 
-                    echo "Python:"
-                    python --version
-
-                    echo ""
-                    echo "Pip:"
-                    pip --version
-
-                    echo ""
-                    echo "Installing requirements..."
-
                     pip install --upgrade pip
+
+                    pip install \
+                        Flask==3.1.1 \
+                        pytest==8.4.1 \
+                        mysql-connector-python
+
                     pip install -r requirements.txt
 
-                    echo ""
-                    echo "Installed packages:"
                     pip list
                 '''
             }
@@ -105,12 +70,7 @@ pipeline {
         stage('Run Unit Tests') {
             steps {
                 sh '''
-                    echo "=============================="
-                    echo "Running Unit Tests"
-                    echo "=============================="
-
                     . venv/bin/activate
-
                     pytest -v
                 '''
             }
@@ -118,10 +78,12 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                echo 'Building Docker image...'
-
                 sh '''
                     docker build \
+                        --build-arg HTTP_PROXY=$HTTP_PROXY \
+                        --build-arg HTTPS_PROXY=$HTTPS_PROXY \
+                        --build-arg http_proxy=$http_proxy \
+                        --build-arg https_proxy=$https_proxy \
                         -t python-test-app:${BUILD_NUMBER} .
                 '''
             }
@@ -129,61 +91,40 @@ pipeline {
 
         stage('Verify Docker Image') {
             steps {
-                echo 'Verifying Docker image...'
-
                 sh '''
                     docker images python-test-app
                 '''
             }
         }
-	stage('Deploy Stack') {
-	    steps {
-		echo 'Deploying application + database via docker compose...'
-		sh '''
-		    docker compose up -d --build
-		 '''
-	     }
-	}
+
+        stage('Deploy Stack') {
+            steps {
+                sh '''
+                    docker compose up -d --build
+                '''
+            }
+        }
+
         stage('Verify Deployment') {
             steps {
-                echo 'Verifying application deployment...'
-        
-                sh '''                    sleep 5
-        
-                    docker exec python-test-app \
-                        python -c "import urllib.request; print(urllib.request.urlopen('http://localhost:5000/health').read().decode())"
+                sh '''
+                    sleep 10
+
+                    docker ps
+
+                    curl http://localhost:5000/health
                 '''
             }
         }
     }
 
     post {
-
-        success {
-            echo "===================================="
-            echo "CI PIPELINE SUCCESSFUL"
-            echo "===================================="
-            echo "Tests passed."
-            echo "Docker image built successfully."
-            echo "===================================="
-        }
-
-        failure {
-            echo "===================================="
-            echo "CI PIPELINE FAILED"
-            echo "===================================="
-            echo "Check the Console Output."
-            echo "===================================="
-        }
-
         always {
             sh '''
-                echo "=============================="
-                echo "Container Status"
-                echo "=============================="
-
-                docker compose ps
+                docker ps || true
+                docker compose ps || true
             '''
         }
     }
 }
+``
