@@ -89,7 +89,7 @@ pipeline {
             }
         }
 
-        stage('Verify Deployments') {
+        stage('Verify Deployment') {
             steps {
                 sh '''
                     sleep 10
