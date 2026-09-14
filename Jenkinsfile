@@ -2,15 +2,6 @@ pipeline {
 
     agent any
 
-    environment {
-        HTTP_PROXY  = 'http://10.158.100.6:8080'
-        HTTPS_PROXY = 'http://10.158.100.6:8080'
-        http_proxy  = 'http://10.158.100.6:8080'
-        https_proxy = 'http://10.158.100.6:8080'
-        NO_PROXY    = 'localhost,127.0.0.1'
-        no_proxy    = 'localhost,127.0.0.1'
-    }
-
     options {
         skipDefaultCheckout(true)
     }
@@ -31,9 +22,6 @@ pipeline {
         stage('Python Information') {
             steps {
                 sh '''
-                    echo "=== Proxy Variables ==="
-                    env | grep -i proxy
-
                     python3 --version
                     pip3 --version
                 '''
@@ -80,10 +68,6 @@ pipeline {
             steps {
                 sh '''
                     docker build \
-                        --build-arg HTTP_PROXY=$HTTP_PROXY \
-                        --build-arg HTTPS_PROXY=$HTTPS_PROXY \
-                        --build-arg http_proxy=$http_proxy \
-                        --build-arg https_proxy=$https_proxy \
                         -t python-test-app:${BUILD_NUMBER} .
                 '''
             }
@@ -127,4 +111,3 @@ pipeline {
         }
     }
 }
-
