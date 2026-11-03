@@ -53,7 +53,7 @@ SEED_REQUESTS = [
 app = Flask(__name__)
 origins = os.getenv(
     "CORS_ORIGINS",
-    "http://localhost:5173,http://127.0.0.1:5173",
+    "http://localhost:3000,http://127.0.0.1:3000",
 )
 CORS(app, resources={r"/api/*": {"origins": [item.strip() for item in origins.split(",") if item.strip()]}})
 
@@ -246,4 +246,4 @@ if __name__ == "__main__":
     except PyMongoError:
         app.logger.exception("Unable to seed MongoDB; verify the database connection")
         raise
-    app.run(host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "8000")))
+    app.run(host=os.getenv("HOST", "0.0.0.0"), port=int(os.getenv("PORT", "5000")))

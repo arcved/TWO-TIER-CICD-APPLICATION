@@ -110,7 +110,7 @@ pipeline {
             steps {
                 powershell '''
                     $ErrorActionPreference = 'Stop'
-                    docker run --detach --name database --network $env:NETWORK_NAME --publish 27018:27017 --volume clearpath-mongo-data:/data/db clearpath-database-image:latest
+                    docker run --detach --name database --network $env:NETWORK_NAME --publish 27017:27017 --volume clearpath-mongo-data:/data/db clearpath-database-image:latest
                     if ($LASTEXITCODE -ne 0) { throw "Database container deployment failed" }
 
                     $databaseReady = $false
@@ -121,10 +121,10 @@ pipeline {
                     }
                     if (-not $databaseReady) { throw "Database did not become ready" }
 
-                    docker run --detach --name backend --network $env:NETWORK_NAME --publish 8000:8000 --env MONGODB_URI=mongodb://database:27017 --env MONGODB_DB=clearpath --env CORS_ORIGINS=http://localhost:8081 clearpath-backend-image:latest
+                    docker run --detach --name backend --network $env:NETWORK_NAME --publish 5000:5000 --env MONGODB_URI=mongodb://database:27017 --env MONGODB_DB=clearpath --env CORS_ORIGINS=http://localhost:3000 clearpath-backend-image:latest
                     if ($LASTEXITCODE -ne 0) { throw "Backend container deployment failed" }
 
-                    docker run --detach --name frontend --network $env:NETWORK_NAME --publish 8081:80 clearpath-frontend-image:latest
+                    docker run --detach --name frontend --network $env:NETWORK_NAME --publish 3000:80 clearpath-frontend-image:latest
                     if ($LASTEXITCODE -ne 0) { throw "Frontend container deployment failed" }
                 '''
             }
@@ -145,7 +145,7 @@ pipeline {
             steps {
                 powershell '''
                     $ErrorActionPreference = 'Stop'
-                    $urls = @('http://localhost:8000/api/health', 'http://localhost:8081/api/health')
+                    $urls = @('http://localhost:5000/api/health', 'http://localhost:3000/api/health')
                     foreach ($url in $urls) {
                         curl.exe --fail --silent --show-error --retry 10 --retry-connrefused --retry-delay 3 --max-time 30 $url
                         if ($LASTEXITCODE -ne 0) { throw "Health check failed: $url" }
