@@ -22,7 +22,7 @@ docker build -t clearpath-database-image:latest ./database
 docker run -d --name database -p 27017:27017 clearpath-database-image:latest
 ```
 
-If a container named `database` already exists, start it with `docker start database` instead. Copy `backend/.env.example` to `backend/.env` if you need to change the backend defaults. Copy `frontend/.env.example` to `frontend/.env.local` to override the API URL; the default is `http://localhost:8000/api`.
+If a container named `database` already exists, start it with `docker start database` instead. Copy `backend/.env.example` to `backend/.env` if you need to change the backend defaults. Copy `frontend/.env.example` to `frontend/.env.local` to override the API URL; the default is `http://localhost:5000/api`.
 
 ### Git Bash on Windows
 
@@ -48,7 +48,7 @@ npm run dev
 
 For PowerShell, activate the backend virtual environment with `.\.venv\Scripts\Activate.ps1` instead of the Git Bash `source` command. Run the same remaining backend and frontend commands above from their respective directories.
 
-Open [http://localhost:5173](http://localhost:5173). The Flask API listens on port `8000`; its host, port, MongoDB URI/database, and allowed CORS origins are configurable through `HOST`, `PORT`, `MONGODB_URI`, `MONGODB_DB`, and `CORS_ORIGINS`.
+Open [http://localhost:3000](http://localhost:3000). The Flask API listens on port `5000`; its host, port, MongoDB URI/database, and allowed CORS origins are configurable through `HOST`, `PORT`, `MONGODB_URI`, `MONGODB_DB`, and `CORS_ORIGINS`.
 
 ## API
 
@@ -74,7 +74,7 @@ docker build -t clearpath-frontend-image:latest .\frontend
 docker build -t clearpath-backend-image:latest .\backend
 docker build -t clearpath-database-image:latest .\database
 
-docker run -d --name database --network clearpath-net -p 27018:27017 `
+docker run -d --name database --network clearpath-net -p 27017:27017 `
   --volume clearpath-mongo-data:/data/db clearpath-database-image:latest
 $databaseReady = $false
 for ($attempt = 0; $attempt -lt 30; $attempt++) {
@@ -84,13 +84,13 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
 }
 if (-not $databaseReady) { throw "Database did not become ready" }
 
-docker run -d --name backend --network clearpath-net -p 8000:8000 `
+docker run -d --name backend --network clearpath-net -p 5000:5000 `
   -e MONGODB_URI=mongodb://database:27017 -e MONGODB_DB=clearpath `
-  -e CORS_ORIGINS=http://localhost:8081 clearpath-backend-image:latest
-docker run -d --name frontend --network clearpath-net -p 8081:80 clearpath-frontend-image:latest
+  -e CORS_ORIGINS=http://localhost:3000 clearpath-backend-image:latest
+docker run -d --name frontend --network clearpath-net -p 3000:80 clearpath-frontend-image:latest
 ```
 
-The named `clearpath-mongo-data` volume preserves requests when the database container is replaced. The frontend image is built with `VITE_API_URL=/api`, so the browser uses the same host and Nginx forwards `/api/` to `backend:8000`. The database is reachable on host port `27018`; the backend and frontend are reachable on `8000` and `8081`.
+The named `clearpath-mongo-data` volume preserves requests when the database container is replaced. The frontend image is built with `VITE_API_URL=/api`, so the browser uses the same host and Nginx forwards `/api/` to `backend:5000`. The database is reachable on host port `27017`; the backend and frontend are reachable on `5000` and `3000`.
 
 ## Jenkins
 
