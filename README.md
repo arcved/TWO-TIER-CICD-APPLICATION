@@ -64,7 +64,30 @@ Open [http://localhost:3000](http://localhost:3000). The Flask API listens on po
 
 ## Docker images
 
-The Dockerfiles are in `frontend/`, `backend/`, and `database/`. Run these commands from the repository root in PowerShell to build and start the containers. They were not run as part of this project setup.
+The Dockerfiles are in `frontend/`, `backend/`, and `database/`. To build and start all three services, their `clearpath-net` network, and the persistent MongoDB volume with Docker Compose, run from the repository root:
+
+```bash
+# Remove manually started containers and their old network first.
+# This keeps the clearpath-mongo-data volume and its database contents.
+docker rm -f frontend backend database 2>/dev/null || true
+docker network rm clearpath-net 2>/dev/null || true
+
+docker compose -f compose.yaml up --build -d
+docker compose -f compose.yaml ps
+```
+
+Open [http://localhost:3000](http://localhost:3000). The API health endpoint is [http://localhost:5000/api/health](http://localhost:5000/api/health); MongoDB is available on host port `27017`. Compose waits for MongoDB and the backend health checks before starting dependent services.
+
+Follow service logs or stop the services with:
+
+```bash
+docker compose -f compose.yaml logs -f
+docker compose -f compose.yaml down
+```
+
+The `clearpath-mongo-data` volume is retained by `down`. To also delete persisted database data, use `docker compose -f compose.yaml down --volumes`.
+
+Alternatively, build and run the images manually from PowerShell:
 
 ```powershell
 docker network create clearpath-net

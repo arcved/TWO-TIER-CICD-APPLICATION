@@ -1,0 +1,83 @@
+services:
+  database:
+    image: clearpath-database-image:latest
+    build:
+      context: ./database
+      dockerfile: Dockerfile
+    container_name: database
+    ports:
+      - "27017:27017"
+    volumes:
+      - clearpath-mongo-data:/data/db
+    networks:
+      - clearpath-net
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    restart: unless-stopped
+
+  backend:
+    image: clearpath-backend-image:latest
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: backend
+    environment:
+      HOST: 0.0.0.0
+      PORT: 5000
+      MONGODB_URI: mongodb://database:27017
+      MONGODB_DB: clearpath
+      CORS_ORIGINS: http://localhost:3000,http://127.0.0.1:3000
+    ports:
+      - "5000:5000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - clearpath-net
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://127.0.0.1:5000/api/health', timeout=3)"
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+  frontend:
+    image: clearpath-frontend-image:latest
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_URL: /api
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    networks:
+      - clearpath-net
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "-O", "/dev/null", "http://127.0.0.1/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+    restart: unless-stopped
+
+networks:
+  clearpath-net:
+    name: clearpath-net
+    driver: bridge
+
+volumes:
+  clearpath-mongo-data:
+    name: clearpath-mongo-data
